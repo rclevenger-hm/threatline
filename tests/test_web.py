@@ -1,21 +1,26 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from urllib.request import Request, urlopen
 
-from threatline.journal import WorkspaceJournal
+from threatline.runtime import ThreatlineRuntime
+from threatline.settings import WorkspaceSettingsStore
 from threatline.web import create_server
 
 
 class WebTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
-        journal = WorkspaceJournal(Path(self.temp.name) / "journal.json", timezone_name="UTC")
-        self.server = create_server("127.0.0.1", 0, journal=journal)
+        store = WorkspaceSettingsStore(Path(self.temp.name))
+        with patch.dict(os.environ, {}, clear=True):
+            self.runtime = ThreatlineRuntime(store)
+        self.server = create_server("127.0.0.1", 0, runtime=self.runtime)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
@@ -35,6 +40,23 @@ class WebTests(unittest.TestCase):
         )
         with urlopen(request, timeout=2) as response:
             return json.load(response)
+
+    def test_fresh_workspace_reports_setup_required(self) -> None:
+        with urlopen(f"{self.base_url}/api/setup/status", timeout=2) as response:
+            payload = json.load(response)
+        self.assertTrue(payload["needs_setup"])
+        self.assertFalse(payload["setup_complete"])
+        with urlopen(f"{self.base_url}/", timeout=2) as response:
+            self.assertTrue(response.geturl().endswith("/setup"))
+
+    def test_demo_setup_completes_without_credentials(self) -> None:
+        status = self._post("/api/setup", {"mode": "demo", "timezone": "UTC"})
+        self.assertTrue(status["setup_complete"])
+        self.assertFalse(status["needs_setup"])
+        self.assertEqual(status["providers"], ["demo"])
+        with urlopen(f"{self.base_url}/", timeout=2) as response:
+            body = response.read().decode()
+        self.assertIn("Know what needs attention", body)
 
     def test_health(self) -> None:
         with urlopen(f"{self.base_url}/healthz", timeout=2) as response:
