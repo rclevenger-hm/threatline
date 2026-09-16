@@ -131,6 +131,7 @@ class Change:
     occurred_at: datetime = field(default_factory=utc_now)
     source_ref: SourceRef | None = None
     tags: tuple[str, ...] = ()
+    related_work_item_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
