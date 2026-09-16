@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from threatline.attention import queue, today
+from threatline.config import WorkspaceConfigStore
 from threatline.context import ContextEngine
 from threatline.handoff import build_handoff
 from threatline.investigation import build_investigation
 from threatline.journal import WorkspaceJournal
-from threatline.providers.factory import build_registry_from_env
+from threatline.providers.factory import build_provider, build_registry, build_registry_from_env
 from threatline.serialization import to_jsonable
+from threatline.setup_ui import SETUP_PAGE
 from threatline.ui import PAGE
 
 
@@ -30,7 +34,12 @@ def _valid_day(value: str, fallback: date) -> str:
         raise ValueError("date must use YYYY-MM-DD") from exc
 
 
+def _environment_configured() -> bool:
+    return bool((os.environ.get("THREATLINE_PROVIDERS") or os.environ.get("THREATLINE_PROVIDER") or "").strip())
+
+
 class ThreatlineHandler(BaseHTTPRequestHandler):
+    config_store = WorkspaceConfigStore()
     registry = build_registry_from_env()
     engine = ContextEngine(registry)
     journal = WorkspaceJournal()
@@ -40,13 +49,22 @@ class ThreatlineHandler(BaseHTTPRequestHandler):
         path = parsed.path
         query = parse_qs(parsed.query)
         if path == "/":
-            self._send(PAGE.encode(), "text/html; charset=utf-8")
+            page = SETUP_PAGE if self._setup_required() else PAGE
+            self._send(page.encode(), "text/html; charset=utf-8")
+            return
+        if path == "/setup":
+            self._send(SETUP_PAGE.encode(), "text/html; charset=utf-8")
             return
         if path == "/healthz":
             diagnostics = self.registry.diagnostics()
             unavailable = [item.name for item in diagnostics if item.health.status.value == "unavailable"]
             status = "degraded" if unavailable else "ok"
             self._json({"status": status, "providers": to_jsonable(diagnostics)})
+            return
+        if path == "/api/setup":
+            payload = self.config_store.public_state()
+            payload["environment_configured"] = _environment_configured()
+            self._json(payload)
             return
         if path == "/api/providers":
             self._json({"providers": to_jsonable(self.registry.diagnostics())})
@@ -115,6 +133,22 @@ class ThreatlineHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
+        if path == "/api/setup/test":
+            self._test_provider(payload)
+            return
+        if path == "/api/setup/workspace":
+            self._save_workspace(payload)
+            return
+        if path == "/api/setup/activate":
+            workspace_id = str(payload.get("workspace_id") or "").strip()
+            try:
+                workspace = self.config_store.activate(workspace_id)
+                self._reload_runtime()
+            except ValueError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            self._json({"workspace": {"id": workspace.id, "name": workspace.name}, "state": self.config_store.public_state()})
+            return
         if path == "/api/notes":
             try:
                 note = self.journal.add_note(
@@ -143,6 +177,63 @@ class ThreatlineHandler(BaseHTTPRequestHandler):
             self._json({"activity": activity}, HTTPStatus.CREATED)
             return
         self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+
+    def _setup_required(self) -> bool:
+        return not self.config_store.has_workspaces() and not _environment_configured()
+
+    def _test_provider(self, payload: dict[str, object]) -> None:
+        name = str(payload.get("provider") or "").strip().lower()
+        settings = payload.get("config")
+        secrets = payload.get("secrets")
+        if not isinstance(settings, dict) or not isinstance(secrets, dict):
+            self._json({"error": "config and secrets must be objects"}, HTTPStatus.BAD_REQUEST)
+            return
+        try:
+            provider = build_provider(name, settings, secrets)
+            health = provider.health()
+            capabilities = tuple(sorted(provider.capabilities(), key=lambda item: item.value))
+        except (TypeError, ValueError) as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        except Exception as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            return
+        self._json({"provider": name, "health": to_jsonable(health), "capabilities": to_jsonable(capabilities)})
+
+    def _save_workspace(self, payload: dict[str, object]) -> None:
+        providers = payload.get("providers")
+        secrets = payload.get("secrets")
+        if not isinstance(providers, dict):
+            self._json({"error": "providers must be an object"}, HTTPStatus.BAD_REQUEST)
+            return
+        if secrets is not None and not isinstance(secrets, dict):
+            self._json({"error": "secrets must be an object"}, HTTPStatus.BAD_REQUEST)
+            return
+        try:
+            workspace = self.config_store.upsert_workspace(
+                workspace_id=str(payload.get("workspace_id") or ""),
+                name=str(payload.get("name") or "Local workspace"),
+                providers=providers,
+                secrets=secrets,
+                activate=bool(payload.get("activate", True)),
+            )
+            self._reload_runtime()
+        except (TypeError, ValueError) as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        self._json(
+            {
+                "workspace": {"id": workspace.id, "name": workspace.name},
+                "state": self.config_store.public_state(),
+                "providers": to_jsonable(self.registry.diagnostics()),
+            },
+            HTTPStatus.CREATED,
+        )
+
+    def _reload_runtime(self) -> None:
+        handler = type(self)
+        handler.registry = build_registry(handler.config_store)
+        handler.engine = ContextEngine(handler.registry)
 
     def _requested_day(self, query: dict[str, list[str]]) -> str:
         today_local = datetime.now(self.journal.tz).date()
@@ -189,9 +280,13 @@ def create_server(
     port: int = 8080,
     *,
     journal: WorkspaceJournal | None = None,
+    config_store: WorkspaceConfigStore | None = None,
 ) -> ThreadingHTTPServer:
     class Handler(ThreatlineHandler):
         pass
 
     Handler.journal = journal or WorkspaceJournal()
+    Handler.config_store = config_store or WorkspaceConfigStore()
+    Handler.registry = build_registry(Handler.config_store)
+    Handler.engine = ContextEngine(Handler.registry)
     return ThreadingHTTPServer((host, port), Handler)
