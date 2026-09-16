@@ -33,6 +33,14 @@ def _parse_datetime(value: str | None) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
+def _display_user(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    identity = value.get("displayName") or value.get("name") or value.get("emailAddress") or value.get("accountId")
+    text = str(identity or "").strip()
+    return text or None
+
+
 @dataclass(frozen=True, slots=True)
 class JiraConfig:
     base_url: str
@@ -247,7 +255,7 @@ class JiraProvider:
         issues: list[dict[str, Any]] = []
         start_at = 0
         page_size = min(100, self.config.max_results)
-        fields = ["summary", "status", "priority", "updated", "labels", "assignee", "project"]
+        fields = ["summary", "status", "priority", "updated", "created", "labels", "assignee", "reporter", "project"]
 
         while len(issues) < self.config.max_results:
             requested = min(page_size, self.config.max_results - len(issues))
@@ -283,6 +291,7 @@ class JiraProvider:
         status = str((fields.get("status") or {}).get("name") or "unknown").strip()
         priority = str((fields.get("priority") or {}).get("name") or "normal").strip().lower()
         labels = tuple(str(label).strip() for label in (fields.get("labels") or []) if str(label).strip())
+        created = fields.get("created")
         return WorkItem(
             id=key,
             title=summary,
@@ -293,4 +302,7 @@ class JiraProvider:
             updated_at=_parse_datetime(fields.get("updated")),
             source_ref=SourceRef("jira", key, f"{self.config.base_url}/browse/{urllib.parse.quote(key, safe='-_.~')}"),
             tags=labels,
+            assignee=_display_user(fields.get("assignee")),
+            reporter=_display_user(fields.get("reporter")),
+            created_at=_parse_datetime(created) if created else None,
         )
