@@ -6,8 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 
 from threatline.context import ContextEngine
-from threatline.providers.demo import DemoProvider
-from threatline.providers.registry import ProviderRegistry
+from threatline.providers.factory import build_registry_from_env
 from threatline.serialization import to_jsonable
 
 
@@ -15,7 +14,7 @@ PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=
 
 
 class ThreatlineHandler(BaseHTTPRequestHandler):
-    registry = ProviderRegistry([DemoProvider()])
+    registry = build_registry_from_env()
     engine = ContextEngine(registry)
 
     def do_GET(self) -> None:  # noqa: N802
