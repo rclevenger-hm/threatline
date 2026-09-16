@@ -114,13 +114,15 @@ class GitHubProviderTests(unittest.TestCase):
         self.assertEqual(rules[0]["owners"], ["@payments-team"])
         self.assertEqual(rules[1]["pattern"], "*.tf")
 
-    def test_related_change_is_visible_from_work_item_context(self) -> None:
+    def test_related_change_and_repository_runbook_are_visible_from_work_item_context(self) -> None:
         registry = ProviderRegistry([WorkStub(), self.provider])
         context = ContextEngine(registry).work_item_context("OPS-42")
         self.assertIsNotNone(context)
         assert context is not None
         self.assertEqual(len(context["changes"]), 1)
         self.assertEqual(context["changes"][0]["title"], "OPS-42 reduce checkout contention")
+        self.assertEqual(len(context["runbooks"]), 1)
+        self.assertEqual(context["runbooks"][0]["title"], "Checkout Latency")
 
     def test_unconfigured_provider_is_safe(self) -> None:
         provider = GitHubProvider(GitHubConfig(token="", repositories=()), FakeGitHubTransport())
