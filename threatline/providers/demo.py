@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from threatline.domain import Alert, Change, Decision, Meeting, Runbook, Service, Severity, WorkItem
+from threatline.providers.base import HealthStatus, ProviderCapability, ProviderHealth, ProviderKind
 
 
 class DemoProvider:
     name = "demo"
+    kind = ProviderKind.DEMO
 
     def __init__(self) -> None:
         now = datetime.now(timezone.utc)
@@ -31,6 +33,22 @@ class DemoProvider:
         self._decisions = [
             Decision("DEC-3", "Rollback the connection-pool change if saturation remains above 90%.", "OPS-142", "MTG-12", now - timedelta(minutes=6)),
         ]
+
+    def capabilities(self) -> frozenset[ProviderCapability]:
+        return frozenset(
+            {
+                ProviderCapability.READ_SERVICES,
+                ProviderCapability.READ_WORK_ITEMS,
+                ProviderCapability.READ_ALERTS,
+                ProviderCapability.READ_CHANGES,
+                ProviderCapability.READ_RUNBOOKS,
+                ProviderCapability.READ_MEETINGS,
+                ProviderCapability.READ_DECISIONS,
+            }
+        )
+
+    def health(self) -> ProviderHealth:
+        return ProviderHealth(HealthStatus.HEALTHY, "Demo data is available")
 
     def services(self) -> list[Service]: return list(self._services)
     def work_items(self) -> list[WorkItem]: return list(self._work_items)
