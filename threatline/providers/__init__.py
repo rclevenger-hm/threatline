@@ -7,6 +7,7 @@ from threatline.providers.base import (
     ProviderKind,
 )
 from threatline.providers.demo import DemoProvider
+from threatline.providers.github import GitHubConfig, GitHubProvider
 from threatline.providers.jira import JiraConfig, JiraProvider
 from threatline.providers.registry import ProviderDiagnostic, ProviderRegistry
 
@@ -14,6 +15,8 @@ __all__ = [
     "ContextProvider",
     "ContextReader",
     "DemoProvider",
+    "GitHubConfig",
+    "GitHubProvider",
     "HealthStatus",
     "JiraConfig",
     "JiraProvider",

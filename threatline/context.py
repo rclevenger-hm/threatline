@@ -106,6 +106,9 @@ class ContextEngine:
         for change in changes:
             if change.service_id in service_refs:
                 graph.add_relationship(Relationship(entity_ref(change), service_refs[change.service_id], RelationshipKind.MODIFIES))
+            for work_item_id in change.related_work_item_ids:
+                if work_item_id in work_refs:
+                    graph.add_relationship(Relationship(entity_ref(change), work_refs[work_item_id], RelationshipKind.REFERENCES))
         for runbook in runbooks:
             if runbook.service_id in service_refs:
                 graph.add_relationship(Relationship(entity_ref(runbook), service_refs[runbook.service_id], RelationshipKind.DOCUMENTS))
