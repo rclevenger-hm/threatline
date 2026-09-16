@@ -26,6 +26,8 @@ class ProviderDiagnostic:
 class ProviderRegistry:
     """Registry that isolates provider failures and exposes normalized reads."""
 
+    name = "workspace"
+
     def __init__(self, providers: list[ContextProvider] | None = None) -> None:
         self._providers: dict[str, ContextProvider] = {}
         for provider in providers or []:
