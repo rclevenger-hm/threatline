@@ -26,7 +26,10 @@ class FakeJiraTransport:
                             "status": {"name": "Investigating"},
                             "priority": {"name": "High"},
                             "updated": "2026-09-16T09:30:00+00:00",
+                            "created": "2026-09-15T08:00:00+00:00",
                             "labels": ["customer-impact", "payments"],
+                            "assignee": {"displayName": "Alex Example", "accountId": "acct-2"},
+                            "reporter": {"displayName": "Morgan Example"},
                         },
                     }
                 ],
@@ -67,6 +70,9 @@ class JiraProviderTests(unittest.TestCase):
         self.assertEqual(item.status, "Investigating")
         self.assertEqual(item.priority, "high")
         self.assertEqual(item.tags, ("customer-impact", "payments"))
+        self.assertEqual(item.assignee, "Alex Example")
+        self.assertEqual(item.reporter, "Morgan Example")
+        self.assertIsNotNone(item.created_at)
         self.assertEqual(item.source_ref.url, "https://jira.example.invalid/browse/OPS-42")
 
     def test_comment_is_explicit_post(self) -> None:
