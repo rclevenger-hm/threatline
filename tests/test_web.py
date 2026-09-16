@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import threading
 import unittest
-from urllib.request import urlopen
+from pathlib import Path
+from urllib.request import Request, urlopen
 
+from threatline.journal import WorkspaceJournal
 from threatline.web import create_server
 
 
 class WebTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.server = create_server("127.0.0.1", 0)
+        self.temp = tempfile.TemporaryDirectory()
+        journal = WorkspaceJournal(Path(self.temp.name) / "journal.json", timezone_name="UTC")
+        self.server = create_server("127.0.0.1", 0, journal=journal)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
@@ -19,6 +24,17 @@ class WebTests(unittest.TestCase):
         self.server.shutdown()
         self.server.server_close()
         self.thread.join(timeout=2)
+        self.temp.cleanup()
+
+    def _post(self, path: str, payload: dict[str, object]) -> dict[str, object]:
+        request = Request(
+            f"{self.base_url}{path}",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=2) as response:
+            return json.load(response)
 
     def test_health(self) -> None:
         with urlopen(f"{self.base_url}/healthz", timeout=2) as response:
@@ -61,6 +77,25 @@ class WebTests(unittest.TestCase):
         self.assertGreaterEqual(payload["counts"]["alerts"], 1)
         self.assertGreaterEqual(payload["counts"]["changes"], 1)
         self.assertGreaterEqual(payload["counts"]["runbooks"], 1)
+
+    def test_notes_and_activity_feed_handoff(self) -> None:
+        self._post(
+            "/api/activity",
+            {"kind": "investigation_opened", "work_item_id": "OPS-142", "summary": "Opened investigation"},
+        )
+        note_response = self._post(
+            "/api/notes",
+            {"text": "Rollback is holding; watch connection saturation.", "work_item_id": "OPS-142"},
+        )
+        created_day = note_response["note"]["day"]
+        with urlopen(f"{self.base_url}/api/notes?date={created_day}", timeout=2) as response:
+            notes_payload = json.load(response)
+        self.assertEqual(len(notes_payload["notes"]), 1)
+        with urlopen(f"{self.base_url}/api/handoff?date={created_day}", timeout=2) as response:
+            handoff = json.load(response)
+        self.assertIn("OPS-142", handoff["work_item_ids"])
+        self.assertIn("Rollback is holding", handoff["markdown"])
+        self.assertIn("Opened investigation", handoff["markdown"])
 
 
 if __name__ == "__main__":
