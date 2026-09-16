@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,7 @@ class ThreatlineRuntime:
         settings = self.settings_store.load_settings()
         if self.managed_by_environment:
             self.registry = build_registry_from_env()
-            timezone_name = str(settings.get("timezone") or "UTC")
+            timezone_name = os.environ.get("THREATLINE_TIMEZONE") or str(settings.get("timezone") or "UTC")
         else:
             self.registry = build_registry_from_settings(settings, self.settings_store.load_secrets())
             timezone_name = str(settings.get("timezone") or "UTC")
@@ -45,6 +46,7 @@ class ThreatlineRuntime:
             status["setup_complete"] = True
             status["needs_setup"] = False
             status["providers"] = [provider.name for provider in self.registry.providers()]
+            status["timezone"] = self.journal.timezone_name
         return status
 
     def test_setup(self, payload: dict[str, Any]):
