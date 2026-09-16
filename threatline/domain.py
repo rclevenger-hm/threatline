@@ -94,6 +94,9 @@ class WorkItem:
     updated_at: datetime = field(default_factory=utc_now)
     source_ref: SourceRef | None = None
     tags: tuple[str, ...] = ()
+    assignee: str | None = None
+    reporter: str | None = None
+    created_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
