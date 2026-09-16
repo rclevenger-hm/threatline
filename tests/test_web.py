@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from threatline.config import WorkspaceConfigStore
 from threatline.journal import WorkspaceJournal
 from threatline.web import create_server
 
@@ -14,8 +15,15 @@ from threatline.web import create_server
 class WebTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
-        journal = WorkspaceJournal(Path(self.temp.name) / "journal.json", timezone_name="UTC")
-        self.server = create_server("127.0.0.1", 0, journal=journal)
+        root = Path(self.temp.name)
+        journal = WorkspaceJournal(root / "journal.json", timezone_name="UTC")
+        self.config_store = WorkspaceConfigStore(root / "config")
+        self.config_store.upsert_workspace(
+            name="Test workspace",
+            providers={"demo": {"enabled": True}},
+            secrets={},
+        )
+        self.server = create_server("127.0.0.1", 0, journal=journal, config_store=self.config_store)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
@@ -36,18 +44,50 @@ class WebTests(unittest.TestCase):
         with urlopen(request, timeout=2) as response:
             return json.load(response)
 
+    def _get(self, path: str) -> dict[str, object]:
+        with urlopen(f"{self.base_url}{path}", timeout=2) as response:
+            return json.load(response)
+
     def test_health(self) -> None:
-        with urlopen(f"{self.base_url}/healthz", timeout=2) as response:
-            payload = json.load(response)
+        payload = self._get("/healthz")
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["providers"][0]["name"], "demo")
         self.assertEqual(payload["providers"][0]["health"]["status"], "healthy")
 
     def test_provider_diagnostics_api(self) -> None:
-        with urlopen(f"{self.base_url}/api/providers", timeout=2) as response:
-            payload = json.load(response)
+        payload = self._get("/api/providers")
         self.assertEqual(payload["providers"][0]["name"], "demo")
         self.assertIn("read_work_items", payload["providers"][0]["capabilities"])
+
+    def test_setup_page_and_public_workspace_state(self) -> None:
+        with urlopen(f"{self.base_url}/setup", timeout=2) as response:
+            html = response.read().decode()
+        self.assertIn("First-run setup", html)
+        payload = self._get("/api/setup")
+        self.assertTrue(payload["configured"])
+        self.assertEqual(payload["active_workspace"], "test-workspace")
+        self.assertNotIn("secrets", json.dumps(payload))
+
+    def test_setup_provider_test_and_workspace_save(self) -> None:
+        test_result = self._post(
+            "/api/setup/test",
+            {"provider": "demo", "config": {"enabled": True}, "secrets": {}},
+        )
+        self.assertEqual(test_result["health"]["status"], "healthy")
+        saved = self._post(
+            "/api/setup/workspace",
+            {
+                "workspace_id": "secondary",
+                "name": "Secondary",
+                "providers": {"demo": {"enabled": True}},
+                "secrets": {},
+                "activate": True,
+            },
+        )
+        self.assertEqual(saved["workspace"]["id"], "secondary")
+        self.assertEqual(saved["providers"][0]["name"], "demo")
+        state = self._get("/api/setup")
+        self.assertEqual(state["active_workspace"], "secondary")
 
     def test_context_api(self) -> None:
         with urlopen(f"{self.base_url}/api/work-items/OPS-142", timeout=2) as response:
@@ -56,8 +96,7 @@ class WebTests(unittest.TestCase):
         self.assertEqual(payload["service"]["id"], "checkout-api")
 
     def test_today_api_returns_attention_reasons(self) -> None:
-        with urlopen(f"{self.base_url}/api/today", timeout=2) as response:
-            payload = json.load(response)
+        payload = self._get("/api/today")
         self.assertGreaterEqual(len(payload["items"]), 1)
         self.assertIn("score", payload["items"][0])
         self.assertIn("reasons", payload["items"][0])
