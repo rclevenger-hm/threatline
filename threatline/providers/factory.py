@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from threatline.providers.demo import DemoProvider
+from threatline.providers.github import GitHubProvider
 from threatline.providers.jira import JiraProvider
 from threatline.providers.registry import ProviderRegistry
 
@@ -25,6 +26,8 @@ def build_registry_from_env() -> ProviderRegistry:
             providers.append(DemoProvider())
         elif name == "jira":
             providers.append(JiraProvider())
+        elif name == "github":
+            providers.append(GitHubProvider())
         else:
             unknown.append(name)
     if unknown:
