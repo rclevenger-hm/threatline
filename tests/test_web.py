@@ -24,7 +24,14 @@ class WebTests(unittest.TestCase):
         with urlopen(f"{self.base_url}/healthz", timeout=2) as response:
             payload = json.load(response)
         self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["provider"], "demo")
+        self.assertEqual(payload["providers"][0]["name"], "demo")
+        self.assertEqual(payload["providers"][0]["health"]["status"], "healthy")
+
+    def test_provider_diagnostics_api(self) -> None:
+        with urlopen(f"{self.base_url}/api/providers", timeout=2) as response:
+            payload = json.load(response)
+        self.assertEqual(payload["providers"][0]["name"], "demo")
+        self.assertIn("read_work_items", payload["providers"][0]["capabilities"])
 
     def test_context_api(self) -> None:
         with urlopen(f"{self.base_url}/api/work-items/OPS-142", timeout=2) as response:
