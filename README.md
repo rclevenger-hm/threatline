@@ -2,7 +2,7 @@
 
 Threatline is a local-first engineering operations workspace that connects work items, incidents, services, source changes, observability, runbooks, meetings, decisions, and handoffs into shared operational context.
 
-> **Status:** early productization. The public repository starts with an organization-neutral core and demo provider while integrations are migrated behind provider interfaces.
+> **Status:** v1.0 release development. The public repository is organization-neutral and keeps external systems behind provider interfaces.
 
 ## Why Threatline
 
@@ -29,7 +29,7 @@ python -m threatline
 
 Open <http://127.0.0.1:8080>.
 
-The default demo provider requires no credentials and contains fictional operational data.
+On first run, Threatline opens local workspace setup. Choose the demo provider for a zero-credential evaluation, or configure Jira and GitHub directly in the browser. Provider credentials are not stored in browser persistence.
 
 Docker is also supported:
 
@@ -43,21 +43,28 @@ Run the regression suite with:
 python -m unittest discover -s tests -v
 ```
 
-## Current baseline
+## Current v1.0 baseline
 
-The initial public baseline provides:
+The current release baseline provides:
 
-- a dependency-free local web runtime;
-- normalized domain objects for work items, services, alerts, changes, meetings, decisions, and runbooks;
-- provider interfaces that keep external systems out of core application logic;
+- typed, versioned operational domain objects and context relationships;
+- provider capability discovery, diagnostics, and failure isolation;
+- Jira work-item normalization with explicit comment, assign, and transition capabilities;
+- GitHub.com and GitHub Enterprise source context, related changes, ownership, and runbook discovery;
+- deterministic Today attention ranking and a filterable Queue;
+- an investigation workspace with operational timeline and cross-provider context;
+- local Daily Notes, activity capture, and editable handoff generation;
+- first-run workspace setup, provider connection tests, and saved workspace selection;
 - a demo provider so the product is immediately runnable without credentials;
-- health and context APIs;
-- a Today view demonstrating related operational context;
-- Docker packaging;
-- automated tests and CI;
-- a product landing site under `site/` with GitHub Pages deployment configuration.
+- Docker packaging, automated tests, CI, and a public product site.
 
-Existing Support Board functionality will be migrated incrementally rather than copied with organization-specific assumptions.
+Observability, product polish, diagnostics, security hardening, and release packaging remain in the v1.0 roadmap.
+
+## Workspace configuration
+
+Normal workspace settings are stored locally in `~/.threatline/config.json`. Provider credentials are kept in a separate `~/.threatline/secrets.json` file with owner-only permissions where supported. The setup API returns only ordinary settings and indicators that credential fields are populated; it does not return stored credential values.
+
+Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for the setup and configuration model.
 
 ## Architecture
 
@@ -65,11 +72,11 @@ Threatline is built around explicit relationships between operational objects ra
 
 See [docs/architecture.md](docs/architecture.md).
 
-The first provider migration target is Jira, followed by source/change/runbook context and observability.
+The next v1.0 provider milestone is the organization-neutral observability baseline.
 
 ## Security model
 
-The default runtime binds to loopback only. Integrations should use the user's own permissions and keep credentials outside browser storage. Reading and correlating context may be automatic; external write actions remain explicit and user initiated.
+The default runtime binds to loopback only. Integrations use the user's own permissions, credentials stay outside browser persistence, and stored provider secrets are separated from ordinary workspace configuration. Reading and correlating context may be automatic; external write actions remain explicit and user initiated.
 
 ## Early access
 
