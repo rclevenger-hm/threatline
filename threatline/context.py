@@ -66,12 +66,29 @@ class ContextEngine:
         if work_item is None:
             return None
 
+        changes = graph.related(ref, entity_kind=EntityKind.CHANGE)
+        runbooks = graph.related(ref, entity_kind=EntityKind.RUNBOOK)
+        repo_tags = {
+            tag
+            for change in changes
+            for tag in getattr(change, "tags", ())
+            if tag.startswith("repo:")
+        }
+        if repo_tags:
+            seen_runbooks = {getattr(runbook, "id", "") for runbook in runbooks}
+            for candidate in graph.entities(EntityKind.RUNBOOK):
+                candidate_tags = set(getattr(candidate, "tags", ()))
+                candidate_id = getattr(candidate, "id", "")
+                if candidate_id not in seen_runbooks and repo_tags & candidate_tags:
+                    runbooks.append(candidate)
+                    seen_runbooks.add(candidate_id)
+
         return {
             "work_item": to_jsonable(work_item),
             "service": self._first_serialized(graph.related(ref, entity_kind=EntityKind.SERVICE)),
             "alerts": to_jsonable(graph.related(ref, entity_kind=EntityKind.ALERT)),
-            "changes": to_jsonable(graph.related(ref, entity_kind=EntityKind.CHANGE)),
-            "runbooks": to_jsonable(graph.related(ref, entity_kind=EntityKind.RUNBOOK)),
+            "changes": to_jsonable(changes),
+            "runbooks": to_jsonable(runbooks),
             "meetings": to_jsonable(graph.related(ref, entity_kind=EntityKind.MEETING)),
             "decisions": to_jsonable(graph.related(ref, entity_kind=EntityKind.DECISION)),
             "relationships": to_jsonable(graph.relationships_for(ref)),
@@ -106,16 +123,16 @@ class ContextEngine:
         for change in changes:
             if change.service_id in service_refs:
                 graph.add_relationship(Relationship(entity_ref(change), service_refs[change.service_id], RelationshipKind.MODIFIES))
-            for work_item_id in change.related_work_item_ids:
-                if work_item_id in work_refs:
-                    graph.add_relationship(Relationship(entity_ref(change), work_refs[work_item_id], RelationshipKind.REFERENCES))
+            for related_work_item_id in change.related_work_item_ids:
+                if related_work_item_id in work_refs:
+                    graph.add_relationship(Relationship(entity_ref(change), work_refs[related_work_item_id], RelationshipKind.REFERENCES))
         for runbook in runbooks:
             if runbook.service_id in service_refs:
                 graph.add_relationship(Relationship(entity_ref(runbook), service_refs[runbook.service_id], RelationshipKind.DOCUMENTS))
         for meeting in meetings:
-            for work_item_id in meeting.related_work_item_ids:
-                if work_item_id in work_refs:
-                    graph.add_relationship(Relationship(entity_ref(meeting), work_refs[work_item_id], RelationshipKind.DISCUSSES))
+            for related_work_item_id in meeting.related_work_item_ids:
+                if related_work_item_id in work_refs:
+                    graph.add_relationship(Relationship(entity_ref(meeting), work_refs[related_work_item_id], RelationshipKind.DISCUSSES))
         for decision in decisions:
             if decision.related_work_item_id in work_refs:
                 graph.add_relationship(Relationship(entity_ref(decision), work_refs[decision.related_work_item_id], RelationshipKind.RELATES_TO))

@@ -53,6 +53,15 @@ class WebTests(unittest.TestCase):
         self.assertEqual(payload["count"], 1)
         self.assertEqual(payload["items"][0]["work_item"]["id"], "OPS-142")
 
+    def test_investigation_api_includes_timeline_and_context(self) -> None:
+        with urlopen(f"{self.base_url}/api/investigations/OPS-142", timeout=2) as response:
+            payload = json.load(response)
+        self.assertEqual(payload["work_item"]["id"], "OPS-142")
+        self.assertGreaterEqual(len(payload["timeline"]), 1)
+        self.assertGreaterEqual(payload["counts"]["alerts"], 1)
+        self.assertGreaterEqual(payload["counts"]["changes"], 1)
+        self.assertGreaterEqual(payload["counts"]["runbooks"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
