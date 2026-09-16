@@ -39,6 +39,20 @@ class WebTests(unittest.TestCase):
         self.assertEqual(payload["work_item"]["id"], "OPS-142")
         self.assertEqual(payload["service"]["id"], "checkout-api")
 
+    def test_today_api_returns_attention_reasons(self) -> None:
+        with urlopen(f"{self.base_url}/api/today", timeout=2) as response:
+            payload = json.load(response)
+        self.assertGreaterEqual(len(payload["items"]), 1)
+        self.assertIn("score", payload["items"][0])
+        self.assertIn("reasons", payload["items"][0])
+        self.assertIn("work_item", payload["items"][0])
+
+    def test_queue_api_filters_unassigned(self) -> None:
+        with urlopen(f"{self.base_url}/api/queue?ownership=unassigned&q=checkout", timeout=2) as response:
+            payload = json.load(response)
+        self.assertEqual(payload["count"], 1)
+        self.assertEqual(payload["items"][0]["work_item"]["id"], "OPS-142")
+
 
 if __name__ == "__main__":
     unittest.main()
