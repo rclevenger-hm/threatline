@@ -18,12 +18,12 @@ from threatline.domain import (
     entity_ref,
 )
 from threatline.graph import ContextGraph
-from threatline.providers.base import ContextProvider
+from threatline.providers.base import ContextReader
 from threatline.serialization import to_jsonable
 
 
 class ContextEngine:
-    def __init__(self, provider: ContextProvider) -> None:
+    def __init__(self, provider: ContextReader) -> None:
         self.provider = provider
 
     def snapshot(self) -> dict[str, Any]:
@@ -119,9 +119,6 @@ class ContextEngine:
             if decision.meeting_id in meeting_refs:
                 graph.add_relationship(Relationship(meeting_refs[decision.meeting_id], entity_ref(decision), RelationshipKind.RECORDS))
 
-        # A work item inherits useful service context through a single hop. Add
-        # direct derived relationships so consumers do not need vendor-specific
-        # joins or multi-hop traversal for the common investigation view.
         for item in work_items:
             if item.service_id is None:
                 continue
