@@ -25,12 +25,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      - name: Configure Pages
+        id: configure
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+      - name: Pages not enabled yet
+        if: steps.configure.outcome != 'success'
+        run: echo "Enable GitHub Pages for this repository with GitHub Actions as the source, then re-run this workflow."
       - uses: actions/upload-pages-artifact@v3
+        if: steps.configure.outcome == 'success'
         with:
           path: site
       - name: Deploy
+        if: steps.configure.outcome == 'success'
         id: deployment
         uses: actions/deploy-pages@v4
