@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "threatline"
+version = "0.1.0"
+description = "Local-first operational context workspace for engineering teams"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["threatline*"]
+
+[project.scripts]
+threatline = "threatline.__main__:main"

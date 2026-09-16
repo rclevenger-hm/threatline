@@ -1,0 +1,10 @@
+services:
+  threatline:
+    build: .
+    environment:
+      THREATLINE_HOST: 0.0.0.0
+      THREATLINE_PORT: 8080
+      THREATLINE_PROVIDER: demo
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped

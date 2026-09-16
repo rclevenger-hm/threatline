@@ -1,0 +1,38 @@
+name: Early access
+about: Tell us about your team and how you would use Threatline
+title: "Early access: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping shape Threatline. Please avoid sharing credentials, private URLs, customer data, or other sensitive information.
+  - type: input
+    id: team-size
+    attributes:
+      label: Team size
+      placeholder: "e.g. 12 engineers"
+  - type: dropdown
+    id: role
+    attributes:
+      label: Primary use
+      options:
+        - SRE / on-call operations
+        - Platform engineering
+        - DevOps / infrastructure
+        - Support engineering
+        - Security operations
+        - Other engineering operations
+  - type: textarea
+    id: tools
+    attributes:
+      label: Current tools
+      description: Which ticketing, source control, observability and communication tools would you want connected?
+      placeholder: "Jira, GitHub, Grafana, Slack..."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Biggest context-switching problem
+      description: What information is hardest to assemble during normal work or incidents?
+    validations:
+      required: true
