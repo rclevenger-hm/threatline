@@ -135,6 +135,7 @@ def build_investigation(context: dict[str, Any]) -> dict[str, Any]:
         "runbooks": context.get("runbooks") or [],
         "meetings": context.get("meetings") or [],
         "decisions": context.get("decisions") or [],
+        "observability_links": context.get("observability_links") or [],
         "relationships": context.get("relationships") or [],
         "counts": {
             "alerts": len(context.get("alerts") or []),
@@ -142,5 +143,6 @@ def build_investigation(context: dict[str, Any]) -> dict[str, Any]:
             "runbooks": len(context.get("runbooks") or []),
             "meetings": len(context.get("meetings") or []),
             "decisions": len(context.get("decisions") or []),
+            "observability_links": len(context.get("observability_links") or []),
         },
     }
