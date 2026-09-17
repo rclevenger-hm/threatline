@@ -51,6 +51,7 @@ The current release baseline provides:
 - provider capability discovery, diagnostics, and failure isolation;
 - Jira work-item normalization with explicit comment, assign, and transition capabilities;
 - GitHub.com and GitHub Enterprise source context, related changes, ownership, and runbook discovery;
+- organization-neutral observability links with service-scoped Grafana deep links and optional Zabbix active-problem normalization;
 - deterministic Today attention ranking and a filterable Queue;
 - an investigation workspace with operational timeline and cross-provider context;
 - local Daily Notes, activity capture, and editable handoff generation;
@@ -58,13 +59,13 @@ The current release baseline provides:
 - a demo provider so the product is immediately runnable without credentials;
 - Docker packaging, automated tests, CI, and a public product site.
 
-Observability, product polish, diagnostics, security hardening, and release packaging remain in the v1.0 roadmap.
+Product polish, packaging diagnostics, security hardening, and release packaging remain in the v1.0 roadmap.
 
 ## Workspace configuration
 
 Normal workspace settings are stored locally in `~/.threatline/config.json`. Provider credentials are kept in a separate `~/.threatline/secrets.json` file with owner-only permissions where supported. The setup API returns only ordinary settings and indicators that credential fields are populated; it does not return stored credential values.
 
-Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for the setup and configuration model.
+Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for the setup and configuration model and [docs/observability.md](docs/observability.md) for Grafana and Zabbix configuration.
 
 ## Architecture
 
@@ -72,7 +73,7 @@ Threatline is built around explicit relationships between operational objects ra
 
 See [docs/architecture.md](docs/architecture.md).
 
-The next v1.0 provider milestone is the organization-neutral observability baseline.
+The next v1.0 milestone is UX and product polish.
 
 ## Security model
 
