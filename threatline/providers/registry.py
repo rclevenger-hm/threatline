@@ -11,6 +11,7 @@ from threatline.providers.base import (
     ProviderHealth,
     ProviderKind,
 )
+from threatline.providers.observability import ObservabilityLink
 
 T = TypeVar("T")
 
@@ -83,6 +84,20 @@ class ProviderRegistry:
 
     def decisions(self) -> list[Decision]:
         return self._collect(ProviderCapability.READ_DECISIONS, lambda provider: provider.decisions())
+
+    def observability_links(self, service_id: str | None = None) -> list[ObservabilityLink]:
+        values: list[ObservabilityLink] = []
+        for provider in self.providers():
+            try:
+                if ProviderCapability.READ_OBSERVABILITY_LINKS not in provider.capabilities():
+                    continue
+                loader = getattr(provider, "observability_links", None)
+                if loader is None:
+                    continue
+                values.extend(loader(service_id))
+            except Exception:
+                continue
+        return values
 
     def _collect(self, capability: ProviderCapability, loader: Callable[[ContextProvider], list[T]]) -> list[T]:
         values: list[T] = []

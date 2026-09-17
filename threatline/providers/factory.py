@@ -7,7 +7,9 @@ from threatline.config import WorkspaceConfig, WorkspaceConfigStore
 from threatline.providers.demo import DemoProvider
 from threatline.providers.github import GitHubConfig, GitHubProvider
 from threatline.providers.jira import JiraConfig, JiraProvider
+from threatline.providers.observability import GrafanaConfig, GrafanaProvider, parse_grafana_dashboards
 from threatline.providers.registry import ProviderRegistry
+from threatline.providers.zabbix import ZabbixConfig, ZabbixProvider
 
 
 def configured_provider_names() -> tuple[str, ...]:
@@ -89,6 +91,28 @@ def build_provider(
                 max_runbooks=_as_int(values.get("max_runbooks"), 100, 1, 1000),
             )
         )
+    if provider_name == "grafana":
+        return GrafanaProvider(
+            GrafanaConfig(
+                base_url=str(values.get("base_url") or "").strip().rstrip("/"),
+                dashboards=parse_grafana_dashboards(values.get("dashboards")),
+                org_id=str(values.get("org_id") or "").strip(),
+                service_variable=str(values.get("service_variable") or "service").strip(),
+                default_from=str(values.get("default_from") or "now-6h").strip() or "now-6h",
+                default_to=str(values.get("default_to") or "now").strip() or "now",
+            )
+        )
+    if provider_name == "zabbix":
+        return ZabbixProvider(
+            ZabbixConfig(
+                base_url=str(values.get("base_url") or "").strip().rstrip("/"),
+                api_token=str(credentials.get("api_token") or "").strip(),
+                service_tag=str(values.get("service_tag") or "service").strip() or "service",
+                verify_ssl=_as_bool(values.get("verify_ssl"), True),
+                timeout_seconds=_as_float(values.get("timeout_seconds"), 30.0),
+                max_problems=_as_int(values.get("max_problems"), 200, 1, 5000),
+            )
+        )
     raise ValueError(f"Unknown Threatline provider: {provider_name}")
 
 
@@ -111,6 +135,10 @@ def build_registry_from_env() -> ProviderRegistry:
             providers.append(JiraProvider())
         elif name == "github":
             providers.append(GitHubProvider())
+        elif name == "grafana":
+            providers.append(GrafanaProvider())
+        elif name == "zabbix":
+            providers.append(ZabbixProvider())
         else:
             unknown.append(name)
     if unknown:
