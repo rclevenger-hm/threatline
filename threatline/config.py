@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 CONFIG_VERSION = 1
-_PROVIDER_NAMES = ("demo", "jira", "github")
+_PROVIDER_NAMES = ("demo", "jira", "github", "grafana", "zabbix")
 _SECRET_FIELDS = {
     "demo": frozenset(),
     "jira": frozenset({"bearer_token", "api_token"}),
     "github": frozenset({"token"}),
+    "grafana": frozenset(),
+    "zabbix": frozenset({"api_token"}),
 }
 _PUBLIC_FIELDS = {
     "demo": frozenset({"enabled"}),
@@ -27,6 +29,27 @@ _PUBLIC_FIELDS = {
             "timeout_seconds",
             "max_changes",
             "max_runbooks",
+        }
+    ),
+    "grafana": frozenset(
+        {
+            "enabled",
+            "base_url",
+            "dashboards",
+            "org_id",
+            "service_variable",
+            "default_from",
+            "default_to",
+        }
+    ),
+    "zabbix": frozenset(
+        {
+            "enabled",
+            "base_url",
+            "service_tag",
+            "verify_ssl",
+            "timeout_seconds",
+            "max_problems",
         }
     ),
 }
@@ -230,6 +253,19 @@ class WorkspaceConfigStore:
                         value = [str(part).strip() for part in value if str(part).strip()]
                     else:
                         raise ValueError("GitHub repositories must be a list or comma-separated string")
+                elif key == "dashboards":
+                    if isinstance(value, str):
+                        value = [part.strip() for part in re.split(r"[;\n]+", value) if part.strip()]
+                    elif isinstance(value, (list, tuple)):
+                        cleaned: list[object] = []
+                        for part in value:
+                            if isinstance(part, Mapping):
+                                cleaned.append({str(k): v for k, v in part.items()})
+                            elif str(part).strip():
+                                cleaned.append(str(part).strip())
+                        value = cleaned
+                    else:
+                        raise ValueError("Grafana dashboards must be a list or semicolon-separated string")
                 settings[key] = value
             settings["enabled"] = _enabled(settings.get("enabled", True))
             normalized[provider_name] = settings
