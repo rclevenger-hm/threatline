@@ -26,6 +26,7 @@ class ProviderCapability(StrEnum):
     READ_RUNBOOKS = "read_runbooks"
     READ_MEETINGS = "read_meetings"
     READ_DECISIONS = "read_decisions"
+    READ_OBSERVABILITY_LINKS = "read_observability_links"
     COMMENT_WORK_ITEM = "comment_work_item"
     ASSIGN_WORK_ITEM = "assign_work_item"
     TRANSITION_WORK_ITEM = "transition_work_item"
