@@ -25,6 +25,11 @@ class ProviderFactoryTests(unittest.TestCase):
             registry = build_registry_from_env()
         self.assertEqual([provider.name for provider in registry.providers()], ["jira", "github"])
 
+    def test_observability_providers_can_be_registered(self) -> None:
+        with patch.dict(os.environ, {"THREATLINE_PROVIDERS": "grafana,zabbix"}, clear=True):
+            registry = build_registry_from_env()
+        self.assertEqual([provider.name for provider in registry.providers()], ["grafana", "zabbix"])
+
     def test_unknown_provider_is_rejected(self) -> None:
         with patch.dict(os.environ, {"THREATLINE_PROVIDERS": "demo,unknown"}, clear=True):
             with self.assertRaises(ValueError):
