@@ -45,6 +45,7 @@ class ContextEngine:
             "runbooks": to_jsonable(runbooks),
             "meetings": to_jsonable(meetings),
             "decisions": to_jsonable(decisions),
+            "observability_links": to_jsonable(self._observability_links()),
             "relationships": to_jsonable(graph.all_relationships()),
         }
 
@@ -83,6 +84,7 @@ class ContextEngine:
                     runbooks.append(candidate)
                     seen_runbooks.add(candidate_id)
 
+        service_id = getattr(work_item, "service_id", None)
         return {
             "work_item": to_jsonable(work_item),
             "service": self._first_serialized(graph.related(ref, entity_kind=EntityKind.SERVICE)),
@@ -91,8 +93,19 @@ class ContextEngine:
             "runbooks": to_jsonable(runbooks),
             "meetings": to_jsonable(graph.related(ref, entity_kind=EntityKind.MEETING)),
             "decisions": to_jsonable(graph.related(ref, entity_kind=EntityKind.DECISION)),
+            "observability_links": to_jsonable(self._observability_links(service_id)),
             "relationships": to_jsonable(graph.relationships_for(ref)),
         }
+
+    def _observability_links(self, service_id: str | None = None) -> list[Any]:
+        loader = getattr(self.provider, "observability_links", None)
+        if loader is None:
+            return []
+        try:
+            values = loader(service_id)
+        except Exception:
+            return []
+        return list(values) if values is not None else []
 
     @staticmethod
     def _first_serialized(values: list[Any]) -> Any:
