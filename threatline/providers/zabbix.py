@@ -71,12 +71,13 @@ class UrlLibZabbixTransport:
             "params": params,
             "id": 1,
         }
+        headers = {"Content-Type": "application/json-rpc", "User-Agent": self.user_agent}
         if method != "apiinfo.version":
-            payload["auth"] = config.api_token
+            headers["Authorization"] = f"Bearer {config.api_token}"
         request = urllib.request.Request(
             config.api_url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json-rpc", "User-Agent": self.user_agent},
+            headers=headers,
             method="POST",
         )
         context = None if config.verify_ssl else ssl._create_unverified_context()
