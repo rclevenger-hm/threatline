@@ -72,7 +72,7 @@ Environment-based configuration remains supported for existing local deployments
 
 Threatline is built around explicit relationships between operational objects rather than around any one ticketing, source-control, observability, or communication vendor.
 
-See [docs/architecture.md](docs/architecture.md).
+See [docs/architecture.md](docs/architecture.md) for the system boundaries and [docs/domain-extension-rules.md](docs/domain-extension-rules.md) for the contract for adding new core entities and relationships without leaking provider-specific schemas into the domain model.
 
 The next v1.0 milestone is packaging and diagnostics.
 

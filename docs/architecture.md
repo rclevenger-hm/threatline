@@ -14,6 +14,8 @@ Threatline is being extracted as an organization-neutral product rather than pub
 
 The initial model contains `Service`, `WorkItem`, `Alert`, `Change`, `Runbook`, `Meeting`, and `Decision`. Additional objects should be introduced when a real workflow requires them.
 
+New entity and relationship types must remain organization-neutral, preserve serialization compatibility, and keep vendor-specific payloads behind providers. See [domain extension rules](domain-extension-rules.md) for the registration, compatibility, provider-boundary, and validation contract.
+
 ## Provider boundary
 
 `ContextProvider` supplies normalized objects to the `ContextEngine`. The demo provider proves the interface without credentials. The next provider should be Jira, migrated from Support Board after organization-specific assumptions are removed.
