@@ -29,7 +29,7 @@ python -m threatline
 
 Open <http://127.0.0.1:8080>.
 
-On first run, Threatline opens local workspace setup. Choose the demo provider for a zero-credential evaluation, or configure Jira and GitHub directly in the browser. Provider credentials are not stored in browser persistence.
+On first run, Threatline opens local workspace setup. Choose the demo provider for a zero-credential evaluation, or configure Jira, GitHub, Grafana, and optional Zabbix directly in the browser. Provider credentials are not stored in browser persistence.
 
 Docker is also supported:
 
@@ -53,19 +53,20 @@ The current release baseline provides:
 - GitHub.com and GitHub Enterprise source context, related changes, ownership, and runbook discovery;
 - organization-neutral observability links with service-scoped Grafana deep links and optional Zabbix active-problem normalization;
 - deterministic Today attention ranking and a filterable Queue;
-- an investigation workspace with operational timeline and cross-provider context;
+- an investigation workspace with operational timeline, dedicated observability links, and cross-provider context;
 - local Daily Notes, activity capture, and editable handoff generation;
-- first-run workspace setup, provider connection tests, and saved workspace selection;
+- first-run workspace setup, provider connection tests, saved workspace selection, and browser configuration for shipped providers;
+- responsive primary navigation, keyboard navigation and command palette, provider-aware empty/error states, and accessibility-focused interaction semantics;
 - a demo provider so the product is immediately runnable without credentials;
 - Docker packaging, automated tests, CI, and a public product site.
 
-Product polish, packaging diagnostics, security hardening, and release packaging remain in the v1.0 roadmap.
+Packaging diagnostics, security hardening, release documentation, and final release packaging remain in the v1.0 roadmap.
 
 ## Workspace configuration
 
 Normal workspace settings are stored locally in `~/.threatline/config.json`. Provider credentials are kept in a separate `~/.threatline/secrets.json` file with owner-only permissions where supported. The setup API returns only ordinary settings and indicators that credential fields are populated; it does not return stored credential values.
 
-Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for the setup and configuration model and [docs/observability.md](docs/observability.md) for Grafana and Zabbix configuration.
+Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for setup, navigation, and configuration and [docs/observability.md](docs/observability.md) for Grafana and Zabbix behavior.
 
 ## Architecture
 
@@ -73,7 +74,7 @@ Threatline is built around explicit relationships between operational objects ra
 
 See [docs/architecture.md](docs/architecture.md) for the system boundaries and [docs/domain-extension-rules.md](docs/domain-extension-rules.md) for the contract for adding new core entities and relationships without leaking provider-specific schemas into the domain model.
 
-The next v1.0 milestone is UX and product polish.
+The next v1.0 milestone is packaging and diagnostics.
 
 ## Security model
 
