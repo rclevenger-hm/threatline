@@ -1,6 +1,6 @@
 # Workspace setup
 
-Threatline v1.0 uses a local first-run setup flow so Jira and GitHub can be configured without editing source files or maintaining a `.env` file.
+Threatline v1.0 uses a local first-run setup flow so supported providers can be configured without editing source files or maintaining a `.env` file.
 
 ## First run
 
@@ -9,11 +9,15 @@ Start Threatline and open `http://127.0.0.1:8080`. When no saved workspace exist
 The setup page supports:
 
 - naming and saving local workspaces;
-- enabling Demo, Jira, and GitHub providers independently;
-- testing a provider connection before saving;
+- enabling Demo, Jira, GitHub, Grafana, and Zabbix providers independently;
+- testing a provider connection or configuration before saving;
 - selecting and activating an existing workspace;
 - configuring GitHub.com or GitHub Enterprise Server URLs;
-- configuring Jira Cloud, Server, or Data Center endpoints.
+- configuring Jira Cloud, Server, or Data Center endpoints;
+- configuring Grafana dashboard deep links, including service-scoped dashboards;
+- configuring optional Zabbix active-problem ingestion and service-tag correlation.
+
+Grafana remains link-first in v1.0 and does not require a credential. Zabbix API tokens use the same separate secret-storage boundary as Jira and GitHub credentials.
 
 ## Local configuration boundary
 
@@ -22,6 +26,14 @@ Ordinary workspace settings are written to `~/.threatline/config.json` by defaul
 Set `THREATLINE_CONFIG_DIR` to move both files to another local directory.
 
 The browser setup API returns only ordinary settings plus booleans indicating whether credential fields are already populated. Stored credential values are not returned to the browser. Leaving an existing credential field blank in the setup page preserves the stored value.
+
+## Workspace navigation
+
+The main workspace keeps Today, Queue, Daily Notes, and Handoff as the primary surfaces. View selection is reflected in the URL hash so a workspace view can be bookmarked without introducing server-side routes.
+
+Use `Ctrl+K` or `Command+K` to open the command palette. The navigation chords `G` then `T`, `Q`, `N`, or `H` open Today, Queue, Daily Notes, or Handoff. `/` opens Queue and focuses its search field when focus is not already inside an editable control.
+
+The investigation drawer exposes available observability links separately from alerts, source changes, and runbooks. Empty, loading, and provider-error states remain usable from the keyboard and include a direct path back to workspace setup when provider attention is required.
 
 ## Environment configuration compatibility
 

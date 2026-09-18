@@ -54,6 +54,18 @@ class WebTests(unittest.TestCase):
         self.assertEqual(payload["providers"][0]["name"], "demo")
         self.assertEqual(payload["providers"][0]["health"]["status"], "healthy")
 
+    def test_workspace_page_has_polished_navigation_and_accessibility(self) -> None:
+        with urlopen(f"{self.base_url}/", timeout=2) as response:
+            html = response.read().decode()
+        self.assertIn('aria-label="Primary"', html)
+        self.assertIn('id="commandPalette"', html)
+        self.assertIn("Command palette", html)
+        self.assertIn('aria-live="polite"', html)
+        self.assertIn('role="dialog"', html)
+        self.assertIn("data-retry-work", html)
+        self.assertIn("d.observability_links", html)
+        self.assertIn("Workspace setup", html)
+
     def test_provider_diagnostics_api(self) -> None:
         payload = self._get("/api/providers")
         self.assertEqual(payload["providers"][0]["name"], "demo")
@@ -63,6 +75,10 @@ class WebTests(unittest.TestCase):
         with urlopen(f"{self.base_url}/setup", timeout=2) as response:
             html = response.read().decode()
         self.assertIn("First-run setup", html)
+        self.assertIn("Grafana", html)
+        self.assertIn("Zabbix", html)
+        self.assertIn('id="grafanaDashboards"', html)
+        self.assertIn('id="zabbixApiToken"', html)
         payload = self._get("/api/setup")
         self.assertTrue(payload["configured"])
         self.assertEqual(payload["active_workspace"], "test-workspace")
@@ -116,6 +132,7 @@ class WebTests(unittest.TestCase):
         self.assertGreaterEqual(payload["counts"]["alerts"], 1)
         self.assertGreaterEqual(payload["counts"]["changes"], 1)
         self.assertGreaterEqual(payload["counts"]["runbooks"], 1)
+        self.assertIn("observability_links", payload["counts"])
 
     def test_notes_and_activity_feed_handoff(self) -> None:
         self._post(
