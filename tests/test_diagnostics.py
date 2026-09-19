@@ -8,7 +8,8 @@ from pathlib import Path
 from threatline.config import WorkspaceConfigStore
 from threatline.diagnostics import build_support_bundle, support_bundle_json
 from threatline.journal import WorkspaceJournal
-from threatline.providers.factory import build_registry
+from threatline.providers.demo import DemoProvider
+from threatline.providers.registry import ProviderRegistry
 
 
 class DiagnosticsTests(unittest.TestCase):
@@ -28,7 +29,7 @@ class DiagnosticsTests(unittest.TestCase):
             },
             secrets={"github": {"token": self.secret}},
         )
-        self.registry = build_registry(self.store)
+        self.registry = ProviderRegistry([DemoProvider()])
         self.journal = WorkspaceJournal(root / "data" / "journal.json", timezone_name="UTC")
 
     def tearDown(self) -> None:
@@ -40,7 +41,7 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(bundle["application"]["name"], "Threatline")
         self.assertIn("python", bundle["runtime"])
         self.assertEqual(bundle["configuration"]["versions"]["current"], 1)
-        self.assertEqual(bundle["providers"][0]["name"], "github")
+        self.assertEqual(bundle["providers"][0]["name"], "demo")
 
     def test_support_bundle_never_contains_stored_secret_values(self) -> None:
         encoded = support_bundle_json(self.store, self.registry, self.journal).decode("utf-8")
