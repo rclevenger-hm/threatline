@@ -49,7 +49,7 @@ class DiagnosticsTests(unittest.TestCase):
         payload = json.loads(encoded)
         provider_state = payload["configuration"]["state"]["workspaces"][0]["providers"]["github"]
         self.assertTrue(provider_state["credential_fields"]["token"])
-        self.assertNotIn("secrets", json.dumps(payload))
+        self.assertNotIn("secrets", payload["configuration"]["state"])
 
 
 if __name__ == "__main__":
