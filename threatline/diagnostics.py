@@ -40,7 +40,12 @@ def _redact(value: Any, secret_values: tuple[str, ...]) -> Any:
         cleaned: dict[str, Any] = {}
         for key, item in value.items():
             normalized = str(key).strip().lower()
-            if normalized in _SENSITIVE_KEYS or normalized.endswith("_token") or normalized.endswith("_password"):
+            sensitive = (
+                normalized in _SENSITIVE_KEYS
+                or normalized.endswith("_token")
+                or normalized.endswith("_password")
+            )
+            if sensitive and isinstance(item, str):
                 cleaned[str(key)] = "[redacted]"
             else:
                 cleaned[str(key)] = _redact(item, secret_values)
