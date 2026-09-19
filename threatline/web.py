@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from threatline.attention import queue, today
 from threatline.config import WorkspaceConfigStore
 from threatline.context import ContextEngine
+from threatline.diagnostics import build_support_bundle, support_bundle_json
 from threatline.handoff import build_handoff
 from threatline.investigation import build_investigation
 from threatline.journal import WorkspaceJournal
@@ -60,6 +61,16 @@ class ThreatlineHandler(BaseHTTPRequestHandler):
             unavailable = [item.name for item in diagnostics if item.health.status.value == "unavailable"]
             status = "degraded" if unavailable else "ok"
             self._json({"status": status, "providers": to_jsonable(diagnostics)})
+            return
+        if path == "/api/diagnostics":
+            self._json(build_support_bundle(self.config_store, self.registry, self.journal))
+            return
+        if path == "/api/support-bundle":
+            self._send(
+                support_bundle_json(self.config_store, self.registry, self.journal),
+                "application/json; charset=utf-8",
+                headers={"Content-Disposition": 'attachment; filename="threatline-support.json"'},
+            )
             return
         if path == "/api/setup":
             payload = self.config_store.public_state()
@@ -264,13 +275,22 @@ class ThreatlineHandler(BaseHTTPRequestHandler):
     def _json(self, payload: object, status: HTTPStatus = HTTPStatus.OK) -> None:
         self._send(json.dumps(payload, separators=(",", ":")).encode(), "application/json", status)
 
-    def _send(self, body: bytes, content_type: str, status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _send(
+        self,
+        body: bytes,
+        content_type: str,
+        status: HTTPStatus = HTTPStatus.OK,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
