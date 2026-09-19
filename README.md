@@ -37,6 +37,8 @@ Docker is also supported:
 docker compose up --build
 ```
 
+Docker Compose persists workspace configuration and runtime data in a named local volume, opens first-run setup on a fresh volume, and does not force demo mode after a real workspace is configured.
+
 Run the regression suite with:
 
 ```bash
@@ -57,16 +59,19 @@ The current release baseline provides:
 - local Daily Notes, activity capture, and editable handoff generation;
 - first-run workspace setup, provider connection tests, saved workspace selection, and browser configuration for shipped providers;
 - responsive primary navigation, keyboard navigation and command palette, provider-aware empty/error states, and accessibility-focused interaction semantics;
+- versioned local configuration with an explicit migration boundary and safe rejection of newer unsupported schemas;
+- startup/provider diagnostics plus downloadable support diagnostics with stored credential values excluded;
+- cross-platform Python CI on Linux, macOS, and Windows, plus Docker Compose validation and image-build checks;
 - a demo provider so the product is immediately runnable without credentials;
 - Docker packaging, automated tests, CI, and a public product site.
 
-Packaging diagnostics, security hardening, release documentation, and final release packaging remain in the v1.0 roadmap.
+Security hardening, public security documentation, site/docs alignment, final hardening, and release packaging remain in the v1.0 roadmap.
 
 ## Workspace configuration
 
 Normal workspace settings are stored locally in `~/.threatline/config.json`. Provider credentials are kept in a separate `~/.threatline/secrets.json` file with owner-only permissions where supported. The setup API returns only ordinary settings and indicators that credential fields are populated; it does not return stored credential values.
 
-Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for setup, navigation, and configuration and [docs/observability.md](docs/observability.md) for Grafana and Zabbix behavior.
+Environment-based configuration remains supported for existing local deployments. See [docs/onboarding.md](docs/onboarding.md) for setup, navigation, and configuration, [docs/observability.md](docs/observability.md) for Grafana and Zabbix behavior, and [docs/packaging-and-diagnostics.md](docs/packaging-and-diagnostics.md) for local/Docker launch paths, support diagnostics, and configuration version behavior.
 
 ## Architecture
 
@@ -74,7 +79,7 @@ Threatline is built around explicit relationships between operational objects ra
 
 See [docs/architecture.md](docs/architecture.md) for the system boundaries and [docs/domain-extension-rules.md](docs/domain-extension-rules.md) for the contract for adding new core entities and relationships without leaking provider-specific schemas into the domain model.
 
-The next v1.0 milestone is packaging and diagnostics.
+The next v1.0 milestone is security, documentation, and public-site alignment.
 
 ## Security model
 

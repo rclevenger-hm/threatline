@@ -71,6 +71,16 @@ class WebTests(unittest.TestCase):
         self.assertEqual(payload["providers"][0]["name"], "demo")
         self.assertIn("read_work_items", payload["providers"][0]["capabilities"])
 
+    def test_support_diagnostics_and_downloadable_bundle(self) -> None:
+        diagnostics = self._get("/api/diagnostics")
+        self.assertEqual(diagnostics["application"]["name"], "Threatline")
+        self.assertEqual(diagnostics["configuration"]["versions"]["current"], 1)
+        self.assertEqual(diagnostics["providers"][0]["name"], "demo")
+        with urlopen(f"{self.base_url}/api/support-bundle", timeout=2) as response:
+            self.assertIn("attachment", response.headers.get("Content-Disposition", ""))
+            bundle = json.load(response)
+        self.assertEqual(bundle["bundle_version"], 1)
+
     def test_setup_page_and_public_workspace_state(self) -> None:
         with urlopen(f"{self.base_url}/setup", timeout=2) as response:
             html = response.read().decode()

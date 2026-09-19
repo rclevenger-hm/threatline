@@ -4,7 +4,13 @@ services:
     environment:
       THREATLINE_HOST: 0.0.0.0
       THREATLINE_PORT: 8080
-      THREATLINE_PROVIDER: demo
+      THREATLINE_CONFIG_DIR: /var/lib/threatline/config
+      THREATLINE_DATA_DIR: /var/lib/threatline/data
     ports:
       - "127.0.0.1:8080:8080"
+    volumes:
+      - threatline-state:/var/lib/threatline
     restart: unless-stopped
+
+volumes:
+  threatline-state:

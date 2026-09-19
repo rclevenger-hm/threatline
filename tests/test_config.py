@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from threatline.config import WorkspaceConfigStore
+from threatline.config import CONFIG_VERSION, WorkspaceConfigStore
 from threatline.providers.factory import build_registry
 
 
@@ -93,6 +93,38 @@ class WorkspaceConfigStoreTests(unittest.TestCase):
         self.assertEqual([provider.name for provider in build_registry(self.store).providers()], ["demo"])
         self.store.activate("source-only")
         self.assertEqual([provider.name for provider in build_registry(self.store).providers()], ["github"])
+
+    def test_unversioned_configuration_is_promoted_to_current_version(self) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.store.config_path.write_text(
+            json.dumps(
+                {
+                    "active_workspace": "legacy",
+                    "workspaces": [
+                        {
+                            "id": "legacy",
+                            "name": "Legacy",
+                            "providers": {"demo": {"enabled": True}},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        state = self.store.public_state()
+        self.assertEqual(state["version"], CONFIG_VERSION)
+        self.assertEqual(state["active_workspace"], "legacy")
+        on_disk = json.loads(self.store.config_path.read_text(encoding="utf-8"))
+        self.assertEqual(on_disk["version"], CONFIG_VERSION)
+
+    def test_future_configuration_version_is_rejected(self) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.store.config_path.write_text(
+            json.dumps({"version": CONFIG_VERSION + 1, "active_workspace": None, "workspaces": []}),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "newer than supported"):
+            self.store.public_state()
 
 
 if __name__ == "__main__":

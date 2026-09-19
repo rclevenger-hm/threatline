@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Local-first operational context workspace for engineering teams"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["tzdata>=2025.2"]
 
 [tool.setuptools.packages.find]
 include = ["threatline*"]

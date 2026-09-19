@@ -72,6 +72,21 @@ def _json_object(path: Path, fallback: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _document_version(document: Mapping[str, object], path: Path) -> int:
+    raw_version = document.get("version", 0)
+    try:
+        version = int(raw_version)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Threatline configuration version must be an integer: {path}") from exc
+    if version < 0:
+        raise ValueError(f"Threatline configuration version cannot be negative: {path}")
+    if version > CONFIG_VERSION:
+        raise ValueError(
+            f"Threatline configuration version {version} is newer than supported version {CONFIG_VERSION}: {path}"
+        )
+    return version
+
+
 def _enabled(value: object) -> bool:
     if isinstance(value, bool):
         return value
@@ -109,7 +124,7 @@ class WorkspaceConfigStore:
         if not workspaces:
             return None
         active_id = str(document.get("active_workspace") or workspaces[0].get("id") or "")
-        selected = next((item for item in workspaces if str(item.get("id")) == active_id), workspaces[0])
+        selected = next((item for item in workspaces if str(item.get("id") or "") == active_id), workspaces[0])
         workspace_id = str(selected.get("id") or "")
         providers = selected.get("providers") if isinstance(selected.get("providers"), dict) else {}
         secret_document = self._secrets_doc()
@@ -161,6 +176,15 @@ class WorkspaceConfigStore:
             "workspaces": workspaces,
         }
 
+    def version_state(self) -> dict[str, int]:
+        config_document = self._config_doc()
+        secrets_document = self._secrets_doc()
+        return {
+            "current": CONFIG_VERSION,
+            "config": int(config_document["version"]),
+            "secrets": int(secrets_document["version"]),
+        }
+
     def upsert_workspace(
         self,
         *,
@@ -187,7 +211,11 @@ class WorkspaceConfigStore:
                 break
         if not replaced:
             workspaces.append(replacement)
-        document = {"version": CONFIG_VERSION, "active_workspace": clean_id if activate else document.get("active_workspace"), "workspaces": workspaces}
+        document = {
+            "version": CONFIG_VERSION,
+            "active_workspace": clean_id if activate else document.get("active_workspace"),
+            "workspaces": workspaces,
+        }
         if not document.get("active_workspace"):
             document["active_workspace"] = clean_id
         self._write_json(self.config_path, document)
@@ -274,18 +302,30 @@ class WorkspaceConfigStore:
         return normalized
 
     def _config_doc(self) -> dict[str, Any]:
-        document = _json_object(self.config_path, {"version": CONFIG_VERSION, "active_workspace": None, "workspaces": []})
-        workspaces = self._workspaces(document)
-        return {
-            "version": int(document.get("version") or CONFIG_VERSION),
+        existed = self.config_path.exists()
+        document = _json_object(
+            self.config_path,
+            {"version": CONFIG_VERSION, "active_workspace": None, "workspaces": []},
+        )
+        version = _document_version(document, self.config_path)
+        normalized = {
+            "version": CONFIG_VERSION,
             "active_workspace": document.get("active_workspace"),
-            "workspaces": workspaces,
+            "workspaces": self._workspaces(document),
         }
+        if existed and version < CONFIG_VERSION:
+            self._write_json(self.config_path, normalized)
+        return normalized
 
     def _secrets_doc(self) -> dict[str, Any]:
+        existed = self.secrets_path.exists()
         document = _json_object(self.secrets_path, {"version": CONFIG_VERSION, "workspaces": {}})
+        version = _document_version(document, self.secrets_path)
         workspaces = document.get("workspaces") if isinstance(document.get("workspaces"), dict) else {}
-        return {"version": int(document.get("version") or CONFIG_VERSION), "workspaces": workspaces}
+        normalized = {"version": CONFIG_VERSION, "workspaces": workspaces}
+        if existed and version < CONFIG_VERSION:
+            self._write_json(self.secrets_path, normalized)
+        return normalized
 
     @staticmethod
     def _workspaces(document: Mapping[str, object]) -> list[dict[str, Any]]:
